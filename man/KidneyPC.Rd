@@ -4,10 +4,12 @@
 \alias{KidneyPC}
 \title{KidneyPC}
 \usage{
-KidneyPC(seurat, cum = 90, var = 5)
+KidneyPC(seurat, reduction = "pca", cum = 90, var = 5)
 }
 \arguments{
-\item{seurat}{A Seurat object that has been normalized, scaled, and processed with PCA.}
+\item{seurat}{A Seurat object that has been normalized, scaled, and processed with PCA or other dimensionality reduction methods.}
+
+\item{reduction}{The dimensionality reduction method to use (e.g., "pca", "harmony"). Must exist in the Seurat object.}
 
 \item{cum}{The cumulative percentage threshold to use for selecting PCs.}
 
