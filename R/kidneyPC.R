@@ -19,14 +19,29 @@ KidneyPC <- function(seurat, reduction = "pca", cum = 90, var = 5) {
   }
 
   # 计算每个 PC 的标准差和累积百分比
-  pct <- seurat[[reduction]]@stdev / sum(seurat[[reduction]]@stdev) * 100
+  if (reduction == "pca") {
+    stdevs <- seurat[[reduction]]@stdev
+  } else {
+    # 对于没有标准差的降维方法，例如 harmony，计算每个组件的变异度
+    embeddings <- seurat[[reduction]]@cell.embeddings
+    stdevs <- apply(embeddings, 2, sd)
+  }
+
+  if (is.null(stdevs) || length(stdevs) == 0) {
+    stop("The specified reduction method does not contain valid standard deviations.")
+  }
+  pct <- stdevs / sum(stdevs) * 100
   cumu <- cumsum(pct)
 
   # 找到累积百分比超过 cum% 且对应 PC 的变异度小于 var% 的第一个 PC
   co1 <- which(cumu > cum & pct < var)[1]
 
   # 找到前后两个 PC 的变异度差异超过 0.1% 的位置
-  co2 <- sort(which((pct[1:(length(pct) - 1)] - pct[2:length(pct)]) > 0.1), decreasing = TRUE)[1] + 1
+  if (length(pct) > 1) {
+    co2 <- sort(which((pct[1:(length(pct) - 1)] - pct[2:length(pct)]) > 0.1), decreasing = TRUE)[1] + 1
+  } else {
+    co2 <- NA
+  }
 
   # 确定最终的最佳 PC 数量
   pcs <- min(co1, co2, na.rm = TRUE)
@@ -58,5 +73,4 @@ KidneyPC <- function(seurat, reduction = "pca", cum = 90, var = 5) {
 
 # 示例用法：
 # pcs <- KidneyPC(seurat = your_seurat_object, reduction = "pca", cum = 90, var = 5)
-
 
