@@ -8,7 +8,6 @@
 #' It is recommended to run `joinlayers` on Seurat v5 objects before using this function.
 #' @export
 kidneyH5 <- function(seurat_obj, output_path) {
-
   # 引用anndata包和其他依赖包，确保它们在函数中延迟加载
   anndata <- reticulate::import("anndata", delay_load = TRUE)
   np <- reticulate::import("numpy", delay_load = TRUE)
@@ -16,15 +15,20 @@ kidneyH5 <- function(seurat_obj, output_path) {
   io <- reticulate::import("scipy.io", delay_load = TRUE)
 
   # 获取 counts 矩阵
-  counts_matrix <- GetAssayData(seurat_obj, assay = 'RNA', slot = 'counts')
+  counts_matrix <- GetAssayData(seurat_obj, assay = "RNA", slot = "counts")
 
-  # 确保 counts_matrix 是矩阵类型
+  # 确保 counts_matrix 是可操作的矩阵类型
   if (!inherits(counts_matrix, "matrix") && !inherits(counts_matrix, "dgCMatrix")) {
-    counts_matrix <- as.matrix(counts_matrix)
+    counts_matrix <- as(counts_matrix, "matrix")
   }
 
   # 转置 counts 矩阵使其为细胞数 x 基因数
-  if (is(counts_matrix, 'Matrix')) { counts_matrix <- t(counts_matrix) } else { counts_matrix <- as.matrix(counts_matrix); counts_matrix <- t(counts_matrix) }
+  if (inherits(counts_matrix, "Matrix")) {
+    counts_matrix <- t(counts_matrix)
+  } else {
+    counts_matrix <- as.matrix(counts_matrix)
+    counts_matrix <- t(counts_matrix)
+  }
 
   # 确保 counts_matrix 是 dgCMatrix 格式的稀疏矩阵
   counts_matrix <- as(counts_matrix, "dgCMatrix")
@@ -43,20 +47,19 @@ kidneyH5 <- function(seurat_obj, output_path) {
   # 添加 PCA 降维信息
   if ("pca" %in% names(seurat_obj@reductions)) {
     pca_embeddings <- Embeddings(seurat_obj, reduction = "pca")
-    pca_df <- pd$DataFrame(data = pca_embeddings, index = adata$obs_names)
-    adata$obsm["X_pca"] <- np$array(pca_embeddings)
+    adata$obsm[["X_pca"]] <- np$array(pca_embeddings)
   }
 
   # 添加 Harmony 降维信息
   if ("harmony" %in% names(seurat_obj@reductions)) {
     harmony_embeddings <- Embeddings(seurat_obj, reduction = "harmony")
-    harmony_df <- pd$DataFrame(data = harmony_embeddings, index = adata$obs_names)
-    adata$obsm["X_harmony"] <- np$array(harmony_embeddings)
+    adata$obsm[["X_harmony"]] <- np$array(harmony_embeddings)
   }
 
   # 保存为 H5AD 文件
   adata$write_h5ad(output_path)
 }
+
 
 
 # 示例用法
