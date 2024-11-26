@@ -8,10 +8,18 @@
 #' It is recommended to run `joinlayers` on Seurat v5 objects before using this function.
 #' @export
 kidneyH5 <- function(seurat_obj, output_path) {
-  # 获取counts矩阵并转置
-  counts_matrix <- t(GetAssayData(seurat_obj, assay = 'RNA', slot = 'counts'))
+  # 获取 counts 矩阵并转置
+  counts_matrix <- GetAssayData(seurat_obj, assay = "RNA", slot = "counts")
 
-  # 获取metadata
+  # 确保 counts_matrix 是矩阵类型
+  if (!inherits(counts_matrix, "matrix")) {
+    counts_matrix <- as.matrix(counts_matrix)
+  }
+
+  # 转置 counts 矩阵
+  counts_matrix <- t(counts_matrix)
+
+  # 获取 metadata
   meta_data <- seurat_obj@meta.data
   meta_data$barcode <- rownames(meta_data)  # 添加条形码作为索引
 
@@ -30,7 +38,7 @@ kidneyH5 <- function(seurat_obj, output_path) {
   adata <- anndata$AnnData(X = counts_csr, obs = meta_data)
 
   # 添加 var（基因名称）
-  gene_names <- data.frame('gene' = colnames(counts_matrix))
+  gene_names <- data.frame(gene = colnames(counts_matrix))
   adata$var <- data.frame(index = colnames(counts_matrix))
   adata$var_names <- np$array(colnames(counts_matrix))
 
