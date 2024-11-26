@@ -7,7 +7,7 @@
 #' @details This function requires the installation of the reticulate package and the Python anndata library.
 #' It is recommended to run `joinlayers` on Seurat v5 objects before using this function.
 #' @export
-kidneyH5 <- function(seurat_obj, output_path) {
+kidneyH5 <-  function(seurat_obj, output_path) {
   # 获取 counts 矩阵
   counts_matrix <- GetAssayData(seurat_obj, assay = 'RNA', slot = 'counts')
 
