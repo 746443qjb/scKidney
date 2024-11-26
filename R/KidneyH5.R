@@ -8,6 +8,13 @@
 #' It is recommended to run `joinlayers` on Seurat v5 objects before using this function.
 #' @export
 kidneyH5 <- function(seurat_obj, output_path) {
+
+  # 引用anndata包和其他依赖包，确保它们在函数中延迟加载
+  anndata <- reticulate::import("anndata", delay_load = TRUE)
+  np <- reticulate::import("numpy", delay_load = TRUE)
+  pd <- reticulate::import("pandas", delay_load = TRUE)
+  io <- reticulate::import("scipy.io", delay_load = TRUE)
+
   # 获取 counts 矩阵
   counts_matrix <- GetAssayData(seurat_obj, assay = 'RNA', slot = 'counts')
 
