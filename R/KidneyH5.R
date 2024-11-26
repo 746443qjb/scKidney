@@ -12,26 +12,26 @@ kidneyH5 <- function(seurat_obj, output_path) {
   anndata <- reticulate::import("anndata", delay_load = TRUE)
   np <- reticulate::import("numpy", delay_load = TRUE)
   pd <- reticulate::import("pandas", delay_load = TRUE)
-  io <- reticulate::import("scipy.io", delay_load = TRUE)
 
   # 获取 counts 矩阵
   counts_matrix <- GetAssayData(seurat_obj, assay = "RNA", slot = "counts")
 
   # 确保 counts_matrix 是可操作的矩阵类型
-  if (!inherits(counts_matrix, "matrix") && !inherits(counts_matrix, "dgCMatrix")) {
-    counts_matrix <- as(counts_matrix, "matrix")
+  if (inherits(counts_matrix, "dgTMatrix") || inherits(counts_matrix, "dgeMatrix")) {
+    counts_matrix <- as(counts_matrix, "dgCMatrix")
+  } else if (!inherits(counts_matrix, "matrix") && !inherits(counts_matrix, "dgCMatrix")) {
+    counts_matrix <- as.matrix(counts_matrix)
   }
 
   # 转置 counts 矩阵使其为细胞数 x 基因数
-  if (inherits(counts_matrix, "Matrix")) {
-    counts_matrix <- t(counts_matrix)
-  } else {
-    counts_matrix <- as.matrix(counts_matrix)
+  if (!inherits(counts_matrix, "dgCMatrix")) {
     counts_matrix <- t(counts_matrix)
   }
 
   # 确保 counts_matrix 是 dgCMatrix 格式的稀疏矩阵
-  counts_matrix <- as(counts_matrix, "dgCMatrix")
+  if (!inherits(counts_matrix, "dgCMatrix")) {
+    counts_matrix <- as(counts_matrix, "dgCMatrix")
+  }
 
   # 获取 metadata
   meta_data <- seurat_obj@meta.data
@@ -59,6 +59,7 @@ kidneyH5 <- function(seurat_obj, output_path) {
   # 保存为 H5AD 文件
   adata$write_h5ad(output_path)
 }
+
 
 
 
