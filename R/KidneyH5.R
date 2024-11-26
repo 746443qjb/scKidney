@@ -7,7 +7,7 @@
 #' @details This function requires the installation of the reticulate package and the Python anndata library.
 #' It is recommended to run `joinlayers` on Seurat v5 objects before using this function.
 #' @export
-kidneyH5 <-  function(seurat_obj, output_path) {
+kidneyH5 <- function(seurat_obj, output_path) {
   # 获取 counts 矩阵
   counts_matrix <- GetAssayData(seurat_obj, assay = 'RNA', slot = 'counts')
 
@@ -17,7 +17,7 @@ kidneyH5 <-  function(seurat_obj, output_path) {
   }
 
   # 转置 counts 矩阵使其为细胞数 x 基因数
-  counts_matrix <- t(counts_matrix)
+  if (is(counts_matrix, 'Matrix')) { counts_matrix <- t(counts_matrix) } else { counts_matrix <- as.matrix(counts_matrix); counts_matrix <- t(counts_matrix) }
 
   # 确保 counts_matrix 是 dgCMatrix 格式的稀疏矩阵
   counts_matrix <- as(counts_matrix, "dgCMatrix")
@@ -50,6 +50,7 @@ kidneyH5 <-  function(seurat_obj, output_path) {
   # 保存为 H5AD 文件
   adata$write_h5ad(output_path)
 }
+
 
 # 示例用法
 # sce <- kidneyH5(sce,"sce.h5ad")
