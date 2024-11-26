@@ -1,6 +1,6 @@
 Package: scKidney
 Title: Let's make it easier to process the sc/sn RNA seq data of Kidney
-Version: 0.1.2
+Version: 0.1.3
 Authors@R: 
     person("Jianbo", "Qing", email = "Dr.jianboqing@gmail.com", role = c("aut", "cre"),
     comment = c(ORCID = "0000-0002-6146-3389"))
