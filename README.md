@@ -11,7 +11,11 @@ cell annotation: seurat_annotated <- KidneyCell(seurat = your_seurat_object, spe
 
 seurat to h5ad: 
 It is recommended to run `joinlayers` on Seurat v5 objects before using this function.
+
 library(reticulate)
+
 anndata <- import("anndata")
+
 np <- import("numpy")
+
 sce=kidneyH5(sce,"sce.h5ad")
