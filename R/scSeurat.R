@@ -47,14 +47,21 @@ scSeurat <- function(h5ad_path) {
     var_names <- as.character(reticulate::py_to_r(adata$var$index$to_list()))
   }
 
+  # 转换计数矩阵为 R 对象
   counts <- reticulate::py_to_r(counts)
 
-  # 检查 counts 的类型并强制转换为 dgCMatrix
+  # 确保 counts 是 R 的稀疏矩阵格式
   if (!(inherits(counts, "dgCMatrix") || inherits(counts, "dgRMatrix"))) {
+    # 如果不是稀疏矩阵，尝试将其转换为普通矩阵，然后转为稀疏矩阵
     counts <- as(as.matrix(counts), "dgCMatrix")
   }
 
-  # 转置计数矩阵
+  # 确保 counts 是矩阵
+  if (!is.matrix(counts)) {
+    stop("Counts is not a valid matrix object")
+  }
+
+  # 转置计数矩阵（确保行是基因，列是细胞）
   counts <- t(counts)
 
   obs_names <- as.character(reticulate::py_to_r(adata$obs$index$to_list()))
