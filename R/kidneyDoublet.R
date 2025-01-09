@@ -10,7 +10,6 @@
 #' @export
 KidneyDoublet <- function(seurat, PC, rate = 8, select = "high") {
 
-  # 参数检查
   if (missing(seurat)) {
     stop("You must provide a Seurat object.")
   }
@@ -21,24 +20,21 @@ KidneyDoublet <- function(seurat, PC, rate = 8, select = "high") {
     stop("Select must be either 'high' or 'low'.")
   }
 
-  # 寻找双细胞
   sweep.res.list <- paramSweep(seurat, PCs = 1:PC, sct = FALSE)
   sweep.stats <- summarizeSweep(sweep.res.list, GT = FALSE)
   bcmvn <- find.pK(sweep.stats)
   mpK <- as.numeric(as.vector(bcmvn[bcmvn$BCmetric == max(bcmvn$BCmetric), ]$pK))
 
-  DoubletRate <- ncol(seurat) * rate * 1e-6  # 按每增加 1000 个细胞，双细胞比率增加千分之 8 来计算
+  DoubletRate <- ncol(seurat) * rate * 1e-6
   nExp_poi <- round(DoubletRate * ncol(seurat))
   homotypic.prop <- modelHomotypic(seurat@meta.data$seurat_clusters)
   nExp_poi.adj <- round(nExp_poi * (1 - homotypic.prop))
 
-  # 标记双细胞
   seurat <- doubletFinder(seurat, PCs = 1:PC, pN = 0.25, pK = mpK, nExp = nExp_poi, reuse.pANN = FALSE, sct = FALSE)
   colnames(seurat@meta.data)[ncol(seurat@meta.data)] <- "doublet_low"
   seurat <- doubletFinder(seurat, PCs = 1:PC, pN = 0.25, pK = mpK, nExp = nExp_poi.adj, reuse.pANN = FALSE, sct = FALSE)
   colnames(seurat@meta.data)[ncol(seurat@meta.data)] <- "doublet_high"
 
-  # 选择保留的单细胞
   if (select == "high") {
     seurat <- subset(seurat, subset = doublet_high == "Singlet")
   } else if (select == "low") {

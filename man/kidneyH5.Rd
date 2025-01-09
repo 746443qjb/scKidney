@@ -9,12 +9,28 @@ kidneyH5(seurat_obj, output_path)
 \arguments{
 \item{seurat_obj}{A Seurat object to be converted.}
 
-\item{output_path}{Path where the H5AD file will be saved.}
+\item{output_path}{A character string specifying the path where the H5AD file will be saved.}
+}
+\value{
+No return value. The H5AD file will be saved at the specified location.
 }
 \description{
 This function converts a Seurat object to an H5AD file format.
 }
 \details{
 This function requires the installation of the reticulate package and the Python anndata library.
-It is recommended to run \code{joinlayers} on Seurat v5 objects before using this function.
+It is recommended to run \code{joinlayers()} on Seurat v5 objects before using this function to ensure proper compatibility.
+This function supports dynamic addition of dimensionality reduction embeddings stored in the Seurat object.
+}
+\examples{
+\dontrun{
+library(Seurat)
+library(KidneyH5)
+
+# Example usage
+sce <- CreateSeuratObject(counts = matrix(runif(10000), nrow = 100, ncol = 100))
+sce <- SCTransform(sce)
+kidneyH5(sce, "sce.h5ad")
+}
+
 }

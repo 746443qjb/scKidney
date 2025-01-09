@@ -19,7 +19,6 @@ KidneyQC <- function(seurat, species = "human", MT = 5, RP = 5, HB = 1,
                                "#955251", "#B565A7", "#009B77", "#F7CAC9", "#D65076",
                                "#45B8AC", "#EFC050", "#5B5EA6", "#9B2335", "#DFCFBE")) {
 
-  # 参数检查
   if (missing(seurat)) {
     stop("You must provide a Seurat object.")
   }
@@ -27,7 +26,6 @@ KidneyQC <- function(seurat, species = "human", MT = 5, RP = 5, HB = 1,
     stop("Species must be either 'human' or 'mouse'.")
   }
 
-  # 根据物种选择合适的基因模式
   if (species == "human") {
     seurat[["percent.mt"]] <- Seurat::PercentageFeatureSet(seurat, pattern = "^MT-")
     seurat[["percent.rp"]] <- Seurat::PercentageFeatureSet(seurat, pattern = "^RP[sl]")
@@ -38,7 +36,6 @@ KidneyQC <- function(seurat, species = "human", MT = 5, RP = 5, HB = 1,
     seurat[["percent.hb"]] <- Seurat::PercentageFeatureSet(seurat, pattern = "^Hb[^(p)]")
   }
 
-  # 数据过滤
   seurat <- subset(x = seurat,
                    subset = nFeature_RNA > Feature_low &
                      nFeature_RNA < Feature_high &
@@ -46,7 +43,6 @@ KidneyQC <- function(seurat, species = "human", MT = 5, RP = 5, HB = 1,
                      percent.rp < RP &
                      percent.hb < HB)
 
-  # 绘图部分
   if (Plot) {
     df <- Seurat::FetchData(seurat, vars = c("nFeature_RNA", "nCount_RNA", "percent.mt", "percent.rp", "percent.hb", "orig.ident"))
     df_long <- tidyr::pivot_longer(df, cols = c(nFeature_RNA, nCount_RNA, percent.mt, percent.rp, percent.hb),

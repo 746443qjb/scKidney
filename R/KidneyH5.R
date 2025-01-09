@@ -3,65 +3,55 @@
 #' This function converts a Seurat object to an H5AD file format.
 #'
 #' @param seurat_obj A Seurat object to be converted.
-#' @param output_path Path where the H5AD file will be saved.
+#' @param output_path A character string specifying the path where the H5AD file will be saved.
 #' @details This function requires the installation of the reticulate package and the Python anndata library.
-#' It is recommended to run `joinlayers` on Seurat v5 objects before using this function.
+#' It is recommended to run `joinlayers()` on Seurat v5 objects before using this function to ensure proper compatibility.
+#' This function supports dynamic addition of dimensionality reduction embeddings stored in the Seurat object.
+#' @return No return value. The H5AD file will be saved at the specified location.
 #' @export
+#' @examples
+#' \dontrun{
+#' library(Seurat)
+#' library(KidneyH5)
+#'
+#' # Example usage
+#' sce <- CreateSeuratObject(counts = matrix(runif(10000), nrow = 100, ncol = 100))
+#' sce <- SCTransform(sce)
+#' kidneyH5(sce, "sce.h5ad")
+#' }
+#'
 kidneyH5 <- function(seurat_obj, output_path) {
-  # 引用anndata包和其他依赖包，确保它们在函数中延迟加载
+  # Load required Python libraries
   anndata <- reticulate::import("anndata", delay_load = TRUE)
   np <- reticulate::import("numpy", delay_load = TRUE)
   pd <- reticulate::import("pandas", delay_load = TRUE)
 
-  # 获取 counts 矩阵
-  counts_matrix <- GetAssayData(seurat_obj, assay = "RNA", slot = "counts")
+  counts_matrix <- Seurat::GetAssayData(seurat_obj, assay = 'RNA', layer = 'counts')
 
-  # 确保 counts_matrix 是可操作的矩阵类型
-  if (inherits(counts_matrix, "dgTMatrix") || inherits(counts_matrix, "dgeMatrix")) {
-    counts_matrix <- as(counts_matrix, "dgCMatrix")
-  } else if (!inherits(counts_matrix, "matrix") && !inherits(counts_matrix, "dgCMatrix")) {
+  if (!inherits(counts_matrix, "matrix") && !inherits(counts_matrix, "dgCMatrix")) {
     counts_matrix <- as.matrix(counts_matrix)
   }
 
-  # 转置 counts 矩阵使其为细胞数 x 基因数
-  if (!inherits(counts_matrix, "dgCMatrix")) {
-    counts_matrix <- t(counts_matrix)
-  }
+  counts_matrix <- Matrix::t(counts_matrix)
 
-  # 确保 counts_matrix 是 dgCMatrix 格式的稀疏矩阵
-  if (!inherits(counts_matrix, "dgCMatrix")) {
-    counts_matrix <- as(counts_matrix, "dgCMatrix")
-  }
+  counts_matrix <- as(counts_matrix, "dgCMatrix")
 
-  # 获取 metadata
   meta_data <- seurat_obj@meta.data
   meta_data$barcode <- rownames(meta_data)
-
-  # 创建 AnnData 对象
   adata <- anndata$AnnData(X = counts_matrix, obs = pd$DataFrame(meta_data))
-
-  # 设置基因名称
   gene_names <- colnames(counts_matrix)
   adata$var_names <- np$array(gene_names)
 
-  # 添加 PCA 降维信息
-  if ("pca" %in% names(seurat_obj@reductions)) {
-    pca_embeddings <- Embeddings(seurat_obj, reduction = "pca")
-    adata$obsm[["X_pca"]] <- np$array(pca_embeddings)
+  if (length(seurat_obj@reductions) > 0) {
+    for (reduction_name in names(seurat_obj@reductions)) {
+      embeddings <- Seurat::Embeddings(seurat_obj, reduction = reduction_name)
+      obsm_key <- paste0("X_", reduction_name)
+      adata$obsm[obsm_key] <- np$array(embeddings)
+    }
   }
-
-  # 添加 Harmony 降维信息
-  if ("harmony" %in% names(seurat_obj@reductions)) {
-    harmony_embeddings <- Embeddings(seurat_obj, reduction = "harmony")
-    adata$obsm[["X_harmony"]] <- np$array(harmony_embeddings)
-  }
-
-  # 保存为 H5AD 文件
   adata$write_h5ad(output_path)
 }
+# 示例用法：
+#kidneyH5(sce, "sce.h5ad")
 
 
-
-
-# 示例用法
-# sce <- kidneyH5(sce,"sce.h5ad")

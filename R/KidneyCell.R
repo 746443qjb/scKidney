@@ -25,14 +25,12 @@ KidneyCell <- function(seurat, species = "human", method = "Aucell", class = 1, 
 
   # 评分计算部分
   if (method == "Aucell") {
-    # 使用 AUCell 计算细胞评分
     library(AUCell)
     gene_sets <- lapply(markers, function(marker) as.character(marker))
     cells_rankings <- AUCell_buildRankings(seurat@assays$RNA@data, plotStats = FALSE)
     auc <- AUCell_calcAUC(gene_sets, cells_rankings)
     seurat <- AddMetaData(seurat, as.data.frame(t(auc@assays$AUC)), col.name = "celltype_scores")
   } else if (method == "Vision") {
-    # 使用 Vision 计算细胞评分
     library(VISION)
     gene_sets <- lapply(markers, function(marker) Vision::GeneSet(marker, name = names(marker)))
     vision_obj <- Vision(seurat, gene_sets)
@@ -40,13 +38,11 @@ KidneyCell <- function(seurat, species = "human", method = "Aucell", class = 1, 
     seurat <- AddMetaData(seurat, vision_obj@MetaData$SignatureScores, col.name = "celltype_scores")
   }
 
-  # 根据评分结果对细胞进行注释
   if (addcelltype) {
     max_scores <- apply(seurat@meta.data$celltype_scores, 1, which.max)
     seurat$celltype <- names(markers)[max_scores]
   }
 
-  # 绘图部分
   if (plot == "heatmap") {
     p <- DoHeatmap(seurat, features = unlist(markers), group.by = "celltype") + scale_fill_manual(values = colors)
   } else if (plot == "bubble") {

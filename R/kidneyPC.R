@@ -10,7 +10,6 @@
 #' @export
 KidneyPC <- function(seurat, reduction = "pca", cum = 90, var = 5) {
 
-  # 参数检查
   if (missing(seurat)) {
     stop("You must provide a Seurat object.")
   }
@@ -18,11 +17,9 @@ KidneyPC <- function(seurat, reduction = "pca", cum = 90, var = 5) {
     stop("The specified reduction method does not exist in the Seurat object.")
   }
 
-  # 计算每个 PC 的标准差和累积百分比
   if (reduction == "pca") {
     stdevs <- seurat[[reduction]]@stdev
   } else {
-    # 对于没有标准差的降维方法，例如 harmony，计算每个组件的变异度
     embeddings <- seurat[[reduction]]@cell.embeddings
     stdevs <- apply(embeddings, 2, sd)
   }
@@ -33,10 +30,8 @@ KidneyPC <- function(seurat, reduction = "pca", cum = 90, var = 5) {
   pct <- stdevs / sum(stdevs) * 100
   cumu <- cumsum(pct)
 
-  # 找到累积百分比超过 cum% 且对应 PC 的变异度小于 var% 的第一个 PC
   co1 <- which(cumu > cum & pct < var)[1]
 
-  # 找到前后两个 PC 的变异度差异超过 0.1% 的位置
   if (length(pct) > 1) {
     co2 <- sort(which((pct[1:(length(pct) - 1)] - pct[2:length(pct)]) > 0.1), decreasing = TRUE)[1] + 1
   } else {
@@ -66,7 +61,7 @@ KidneyPC <- function(seurat, reduction = "pca", cum = 90, var = 5) {
       panel.grid.minor = element_blank(),
       legend.position = "none"
     )
-  print(p) # 确保绘图在函数内部被正确显示
+  print(p)
 
   return(pcs)
 }
