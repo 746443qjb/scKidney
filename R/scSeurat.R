@@ -62,7 +62,7 @@ scSeurat <- function(h5ad_path) {
   }
 
   # 转置计数矩阵（确保行是基因，列是细胞）
-  counts <- t(counts)
+  counts <- Matrix::t(counts)
 
   obs_names <- as.character(reticulate::py_to_r(adata$obs$index$to_list()))
   if (length(var_names) != nrow(counts)) {
