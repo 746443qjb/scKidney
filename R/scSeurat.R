@@ -29,7 +29,7 @@ scSeurat <- function(h5ad_path) {
 
 
   use_raw <- FALSE
-  var_names <- NULL  # 基因名称
+  var_names <- NULL
   if (!py_is_null_xptr(adata$raw)) {  # 检查 adata$raw 是否为空
     tryCatch({
       if (!is.null(adata$raw$X)) {  # 检查 raw$X 是否存在
@@ -123,6 +123,7 @@ scSeurat <- function(h5ad_path) {
   # 返回 Seurat 对象
   return(seurat_obj)
 }
-
+# 示例用法：
+# seurat <- scSeurat("sce.h5ad")
 
 
