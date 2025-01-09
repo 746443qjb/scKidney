@@ -18,17 +18,23 @@
 #'
 #' @export
 scSeurat <- function(h5ad_path) {
+
   library(reticulate)
   library(Seurat)
   library(Matrix)
+
+
   anndata <- import("anndata", convert = FALSE)
   adata <- anndata$read_h5ad(h5ad_path)
+
+
   use_raw <- FALSE
-  var_names <- NULL
-  if (!py_is_null_xptr(adata$raw)) {
+  var_names <- NULL  # 基因名称
+  if (!py_is_null_xptr(adata$raw)) {  # 检查 adata$raw 是否为空
     tryCatch({
-      if (!is.null(adata$raw$X)) {
+      if (!is.null(adata$raw$X)) {  # 检查 raw$X 是否存在
         use_raw <- TRUE
+
         var_names <- as.character(reticulate::py_to_r(adata$raw$var$index$to_list()))
       }
     }, error = function(e) {
@@ -42,14 +48,19 @@ scSeurat <- function(h5ad_path) {
   } else {
     message("Using normalized counts matrix from adata$X")
     counts <- adata$X
+
     var_names <- as.character(reticulate::py_to_r(adata$var$index$to_list()))
   }
 
+
   counts <- reticulate::py_to_r(counts)
 
+
   if (inherits(counts, "dgRMatrix") || inherits(counts, "dgCMatrix")) {
+
     message("Counts matrix is already a sparse matrix")
   } else {
+
     counts <- as(Matrix::sparseMatrix(
       i = counts@i + 1,
       p = counts@p,
@@ -57,8 +68,13 @@ scSeurat <- function(h5ad_path) {
       dims = c(counts@shape[[1]], counts@shape[[2]])
     ), "dgCMatrix")
   }
+
+
   counts <- t(counts)
+
+
   obs_names <- as.character(reticulate::py_to_r(adata$obs$index$to_list()))
+
 
   if (length(var_names) != nrow(counts)) {
     stop("Number of gene names does not match the number of rows in counts")
@@ -67,25 +83,35 @@ scSeurat <- function(h5ad_path) {
     stop("Number of cell names does not match the number of columns in counts")
   }
 
+
   rownames(counts) <- var_names
   colnames(counts) <- obs_names
+
+
   meta_data <- reticulate::py_to_r(adata$obs)
-  rownames(meta_data) <- obs_names
+  rownames(meta_data) <- obs_names  # 确保元数据行名与细胞名称一致
+
 
   seurat_obj <- CreateSeuratObject(
     counts = counts,
     meta.data = meta_data,
     assay = "RNA"
   )
+
+
   obsm_dict <- reticulate::py_to_r(dict(adata$obsm))
   for (key in names(obsm_dict)) {
+
     embedding <- obsm_dict[[key]]
+
 
     rownames(embedding) <- colnames(seurat_obj)
     colnames(embedding) <- paste0(key, "_", 1:ncol(embedding))
 
+
     fixed_key <- gsub("^X_", "", key)
     fixed_key <- paste0(fixed_key, "_")
+
 
     seurat_obj[[fixed_key]] <- CreateDimReducObject(
       embeddings = embedding,
@@ -93,12 +119,10 @@ scSeurat <- function(h5ad_path) {
       assay = "RNA"
     )
   }
+
+  # 返回 Seurat 对象
   return(seurat_obj)
 }
-#' 示例用法：
-#'h5ad_path <- "path/to/your/file.h5ad"
-#' seurat_obj <- scSeurat(h5ad_path)
-
 
 
 
