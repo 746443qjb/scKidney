@@ -18,27 +18,23 @@
 #'
 #' @export
 scSeurat <- function(h5ad_path) {
-  # 加载必要的库
   library(reticulate)
   library(Seurat)
   library(Matrix)
 
-  # 加载 AnnData 对象
   anndata <- import("anndata", convert = FALSE)
   adata <- anndata$read_h5ad(h5ad_path)
 
-  # 检查并优先使用 adata$raw$X
   use_raw <- FALSE
-  var_names <- NULL  # 基因名称
-  if (!py_is_null_xptr(adata$raw)) {  # 检查 adata$raw 是否为空
+  var_names <- NULL
+  if (!py_is_null_xptr(adata$raw)) {
     tryCatch({
-      if (!is.null(adata$raw$X)) {  # 检查 raw$X 是否存在
+      if (!is.null(adata$raw$X)) {
         use_raw <- TRUE
-        # 提取 raw 的基因名称
         var_names <- as.character(reticulate::py_to_r(adata$raw$var$index$to_list()))
       }
     }, error = function(e) {
-      use_raw <- FALSE  # 如果访问 adata$raw$X 报错，回退到 adata$X
+      use_raw <- FALSE
     })
   }
 
@@ -48,34 +44,20 @@ scSeurat <- function(h5ad_path) {
   } else {
     message("Using normalized counts matrix from adata$X")
     counts <- adata$X
-    # 如果未使用 raw，则提取标准化计数矩阵的基因名称
     var_names <- as.character(reticulate::py_to_r(adata$var$index$to_list()))
   }
 
-  # 转换计数矩阵为 R 对象
   counts <- reticulate::py_to_r(counts)
 
-  # 检查 counts 是否已经是 R 的稀疏矩阵格式
-  if (inherits(counts, "dgRMatrix") || inherits(counts, "dgCMatrix")) {
-    # 如果 counts 是稀疏矩阵，直接使用
-    message("Counts matrix is already a sparse matrix")
-  } else {
-    # 如果是 SciPy 稀疏矩阵，转换为 dgCMatrix
-    counts <- as(Matrix::sparseMatrix(
-      i = counts@i + 1,
-      p = counts@p,
-      x = counts@x,
-      dims = c(counts@shape[[1]], counts@shape[[2]])
-    ), "dgCMatrix")
+  # 检查 counts 的类型并强制转换为 dgCMatrix
+  if (!(inherits(counts, "dgCMatrix") || inherits(counts, "dgRMatrix"))) {
+    counts <- as(as.matrix(counts), "dgCMatrix")
   }
 
-  # 转置计数矩阵（确保行是基因，列是细胞）
+  # 转置计数矩阵
   counts <- t(counts)
 
-  # 提取细胞名称
   obs_names <- as.character(reticulate::py_to_r(adata$obs$index$to_list()))
-
-  # 确保基因名称和细胞名称与矩阵的维度匹配
   if (length(var_names) != nrow(counts)) {
     stop("Number of gene names does not match the number of rows in counts")
   }
@@ -83,44 +65,24 @@ scSeurat <- function(h5ad_path) {
     stop("Number of cell names does not match the number of columns in counts")
   }
 
-  # 为计数矩阵设置行名和列名
   rownames(counts) <- var_names
   colnames(counts) <- obs_names
 
-  # 提取元数据（adata$obs）
   meta_data <- reticulate::py_to_r(adata$obs)
-  rownames(meta_data) <- obs_names  # 确保元数据行名与细胞名称一致
+  rownames(meta_data) <- obs_names
 
-  # 创建 Seurat 对象
-  seurat_obj <- CreateSeuratObject(
-    counts = counts,
-    meta.data = meta_data,
-    assay = "RNA"
-  )
+  seurat_obj <- CreateSeuratObject(counts = counts, meta.data = meta_data, assay = "RNA")
 
-  # 提取降维数据（adata$obsm）
-  obsm_dict <- reticulate::py_to_r(dict(adata$obsm))  # 替换 as_dict 为 dict
+  obsm_dict <- reticulate::py_to_r(dict(adata$obsm))
   for (key in names(obsm_dict)) {
-    # 提取降维数据
     embedding <- obsm_dict[[key]]
-
-    # 设置降维数据的行名和列名
-    rownames(embedding) <- colnames(seurat_obj)  # 细胞名称
-    colnames(embedding) <- paste0(key, "_", 1:ncol(embedding))  # 特征名称
-
-    # 修复降维 key 名称（去掉 'X_' 前缀并添加下划线）
+    rownames(embedding) <- colnames(seurat_obj)
+    colnames(embedding) <- paste0(key, "_", 1:ncol(embedding))
     fixed_key <- gsub("^X_", "", key)
     fixed_key <- paste0(fixed_key, "_")
-
-    # 创建降维对象并添加到 Seurat 对象
-    seurat_obj[[fixed_key]] <- CreateDimReducObject(
-      embeddings = embedding,
-      key = fixed_key,
-      assay = "RNA"
-    )
+    seurat_obj[[fixed_key]] <- CreateDimReducObject(embeddings = embedding, key = fixed_key, assay = "RNA")
   }
 
-  # 返回 Seurat 对象
   return(seurat_obj)
 }
 # 示例用法：
